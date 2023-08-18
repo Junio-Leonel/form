@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -20,9 +20,21 @@ const createUserFormSchema = z.object({
     .string()
     .nonempty("O e-mail é obrigatório")
     .email("Formato de e-mail inválido")
-    .toLowerCase(),
+    .toLowerCase()
+    .refine((email) => {
+      return email.endsWith("@rocketseat.com.br");
+    }, "O e-mail precisa ser da Rocketseat"),
 
   password: z.string().min(8, "A senha precisa de no minimo 8 caracteres"),
+
+  techs: z
+    .array(
+      z.object({
+        title: z.string().nonempty("O titulo e obrigatorio"),
+        knowledge: z.coerce.number().min(1).max(100),
+      })
+    )
+    .min(2, "Insira pelo menos 2 tecnologias"),
 });
 
 type CreateUserFormData = z.infer<typeof createUserFormSchema>;
@@ -32,12 +44,22 @@ export function App() {
     register,
     handleSubmit,
     formState: { errors },
+    control,
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserFormSchema),
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "techs",
+  });
+
   function createUser(data: any) {
     console.log(data);
+  }
+
+  function addNewTech() {
+    append({ title: "", knowledge: 0 });
   }
 
   return (
@@ -54,7 +76,7 @@ export function App() {
             {...register("name")}
           />
           {errors.name && (
-            <span className="text-xs text-red-500">{errors.name.message}</span>
+            <span className="text-sm text-red-500">{errors.name.message}</span>
           )}
         </div>
 
@@ -66,7 +88,7 @@ export function App() {
             {...register("email")}
           />
           {errors.email && (
-            <span className="text-xs text-red-500">{errors.email.message}</span>
+            <span className="text-sm text-red-500">{errors.email.message}</span>
           )}
         </div>
 
@@ -78,9 +100,60 @@ export function App() {
             {...register("password")}
           />
           {errors.password && (
-            <span className="text-xs text-red-500">
+            <span className="text-sm text-red-500">
               {errors.password.message}
             </span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="" className="flex items-center justify-between">
+            Tecnologias
+            <button
+              type="button"
+              onClick={addNewTech}
+              className="text-emerald-500 text-xs"
+            >
+              Adicionar
+            </button>
+          </label>
+
+          {fields.map((field, index) => {
+            return (
+              <div key={field.id} className="flex gap-2">
+                <div className="flex-1 flex flex-col gap-1">
+                  <input
+                    type="text"
+                    className="border border-zinc-800 shadow-sm rounded h-10 px-3 bg-zinc-900 text-white"
+                    {...register(`techs.${index}.title`)}
+                  />
+
+                  {errors.techs?.[index]?.title && (
+                    <span className="text-sm text-red-500">
+                      {errors.techs?.[index]?.title?.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="number"
+                    className="w-16 border border-zinc-800 shadow-sm rounded h-10 px-3 bg-zinc-900 text-white"
+                    {...register(`techs.${index}.knowledge`)}
+                  />
+
+                  {errors.techs?.[index]?.knowledge && (
+                    <span className="text-sm text-red-500">
+                      {errors.techs?.[index]?.knowledge?.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {errors.techs && (
+            <span className="text-sm text-red-500">{errors.techs.message}</span>
           )}
         </div>
 

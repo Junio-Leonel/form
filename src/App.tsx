@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,12 +35,17 @@ const createUserFormSchema = z.object({
         knowledge: z.coerce.number().min(1).max(100),
       })
     )
-    .min(2, "Insira pelo menos 2 tecnologias"),
+    .min(2, "Insira pelo menos 2 tecnologias")
+    .refine((techs) => {
+      return techs.some((tech) => tech.knowledge > 50);
+    }, "Você está aprendendo!"),
 });
 
 type CreateUserFormData = z.infer<typeof createUserFormSchema>;
 
 export function App() {
+  const [output, setOutput] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -54,16 +60,16 @@ export function App() {
     name: "techs",
   });
 
-  function createUser(data: any) {
-    console.log(data);
-  }
-
   function addNewTech() {
     append({ title: "", knowledge: 0 });
   }
 
+  function createUser(data: CreateUserFormData) {
+    setOutput(JSON.stringify(data, null, 2));
+  }
+
   return (
-    <main className="h-screen bg-zinc-950 text-zinc-300 flex items-center justify-center">
+    <main className="h-screen bg-zinc-950 text-zinc-300 flex flex-col gap-10 items-center justify-center">
       <form
         onSubmit={handleSubmit(createUser)}
         className="flex flex-col gap-4 w-full max-w-xs"
@@ -163,6 +169,8 @@ export function App() {
         >
           Salvar
         </button>
+
+        {output}
       </form>
     </main>
   );
